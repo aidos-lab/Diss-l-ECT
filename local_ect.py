@@ -3,6 +3,7 @@ from torch_geometric.data import Batch, Data
 from torch_geometric.datasets import Planetoid, HeterophilousGraphDataset, WikipediaNetwork, Amazon, Reddit, WebKB, WikipediaNetwork
 import numpy as np
 from torch_geometric.utils.subgraph import k_hop_subgraph
+from matplotlib import pyplot
 
 from layers.ect import EctLayer
 from layers.config import EctConfig
@@ -116,14 +117,14 @@ def xgb_model(dataset,
     test = sub_features[test_mask]
 
     if (radius1 and radius2):
-        train = torch.cat((train, ect_train, ect_train_2), 1)
-        test = torch.cat((test,ect_test,ect_test_2),1)
+        train = torch.cat((ect_train, ect_train_2,train), 1)
+        test = torch.cat((ect_test,ect_test_2,test),1)
     elif radius1:
-        train = torch.cat((train, ect_train), 1)
-        test = torch.cat((test, ect_test), 1)
+        train = torch.cat((ect_train, train), 1)
+        test = torch.cat((ect_test, test), 1)
     elif radius2:
-        train = torch.cat((train, ect_train_2), 1)
-        test = torch.cat((test, ect_test_2), 1)
+        train = torch.cat((ect_train_2, train), 1)
+        test = torch.cat((ect_test_2, test), 1)
 
     train_labels = sub_labels[train_mask]
     train_labels = torch.tensor(train_labels)
@@ -137,6 +138,11 @@ def xgb_model(dataset,
     model.fit(train, train_labels)
     # Predict probabilities for the test set
     y_score = model.predict(test)
+    print(f'Feature Importance: {model.feature_importances_}')
+    # plot
+    pyplot.bar(range(len(model.feature_importances_)), model.feature_importances_)
+    pyplot.title('Feature Importances')
+    pyplot.show()
     if metric=='accuracy':
         acc = accuracy_score(test_labels, y_score)
         print(f'Accuracy: {acc:.4f}')

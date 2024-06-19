@@ -1,14 +1,14 @@
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from torch_geometric.datasets import Planetoid, Reddit, WebKB
+from torch_geometric.datasets import Planetoid, Reddit, WebKB, WikipediaNetwork
 from baselines.models import GCN, GAT
 from torch_geometric.nn.norm import LayerNorm
 import numpy as np
 
 def main():
     # Load the dataset
-    dataset = WebKB(root='/tmp/Wisconsin', name='Wisconsin')
+    dataset = WikipediaNetwork(root='/tmp/chameleon',name='chameleon')
     data = dataset[0]
 
     # subsample_size = len(data.x)
@@ -18,7 +18,7 @@ def main():
 
     # Set device to GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = GAT(dataset=dataset, hidden_channels=64).to(device)
+    model = GCN(dataset=dataset, hidden_channels=64).to(device)
     data = dataset[0].to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
