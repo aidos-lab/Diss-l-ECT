@@ -1,6 +1,6 @@
 import torch
 from torch_geometric.data import Batch, Data
-from torch_geometric.datasets import Planetoid, HeterophilousGraphDataset, WikipediaNetwork, Amazon, Reddit, WebKB, WikipediaNetwork
+from torch_geometric.datasets import Planetoid, HeterophilousGraphDataset, Amazon, Reddit, WebKB, WikipediaNetwork, Actor, LINKXDataset, WikiCS, Coauthor
 import numpy as np
 from torch_geometric.utils.subgraph import k_hop_subgraph
 from matplotlib import pyplot
@@ -69,7 +69,8 @@ def xgb_model(dataset,
               ECT_TYPE='points',
               NUM_THETAS = 64,
               DEVICE = 'cpu',
-              metric='accuracy'
+              metric='accuracy',
+              subsample_size=None
 ):
     '''
     dataset: pytorch geometric graph dataset
@@ -83,12 +84,34 @@ def xgb_model(dataset,
     data = dataset[0]
     all_labels = data.y
     features = data.x
-    if len(data.train_mask.shape)>1:
-        train_mask = data.train_mask[:,0]
-        test_mask = data.test_mask[:, 0]
-    else:
-        train_mask = data.train_mask
-        test_mask = data.test_mask
+    try:
+        if (len(data.train_mask.shape)>1)&(len(data.test_mask.shape)>1):
+            train_mask = data.train_mask[:,0]
+            test_mask = data.test_mask[:,0]
+        elif (len(data.train_mask.shape)>1)&(not(len(data.test_mask.shape)>1)):
+            train_mask = data.train_mask[:, 0]
+            test_mask = data.test_mask
+        else:
+            train_mask = data.train_mask
+            test_mask = data.test_mask
+    except AttributeError:
+        bool_list = [True,False]
+        p = [.75,.25]
+        train_mask = np.random.choice(bool_list,len(data.x),p=p)
+        test_mask = [not x for x in train_mask]
+
+    if subsample_size!=None:
+        np.random.seed(42)
+        idx = np.random.choice(
+            range(len(data.x)),
+            replace=False,
+            size=subsample_size,
+        )
+
+        all_labels = all_labels[idx]
+        features = features[idx]
+        train_mask = train_mask[idx]
+        test_mask = test_mask[idx]
 
     if radius1:
         ect = compute_local_ect(dataset,
@@ -96,7 +119,7 @@ def xgb_model(dataset,
                                  ECT_TYPE=ECT_TYPE,
                                  NUM_THETAS=NUM_THETAS,
                                  DEVICE=DEVICE,
-                                 subsample_size = None)
+                                 subsample_size = subsample_size)
         ect_train = ect[train_mask]
         ect_test = ect[test_mask]
 
@@ -106,7 +129,7 @@ def xgb_model(dataset,
                               ECT_TYPE=ECT_TYPE,
                               NUM_THETAS=NUM_THETAS,
                               DEVICE=DEVICE,
-                              subsample_size=None)
+                              subsample_size=subsample_size)
         ect_train_2 = ect[train_mask]
         ect_test_2 = ect[test_mask]
 
@@ -140,9 +163,10 @@ def xgb_model(dataset,
     y_score = model.predict(test)
     print(f'Feature Importance: {model.feature_importances_}')
     # plot
-    pyplot.bar(range(len(model.feature_importances_)), model.feature_importances_)
-    pyplot.title('Feature Importances')
-    pyplot.show()
+
+    # pyplot.bar(range(len(model.feature_importances_)), model.feature_importances_)
+    # pyplot.title('Feature Importances')
+    # pyplot.show()
     if metric=='accuracy':
         acc = accuracy_score(test_labels, y_score)
         print(f'Accuracy: {acc:.4f}')

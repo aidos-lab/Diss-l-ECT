@@ -1,24 +1,32 @@
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from torch_geometric.datasets import Planetoid, Reddit, WebKB, WikipediaNetwork
+from torch_geometric.datasets import Planetoid, Reddit, WebKB, WikipediaNetwork, Amazon
 from baselines.models import GCN, GAT
 from torch_geometric.nn.norm import LayerNorm
 import numpy as np
 
 def main():
     # Load the dataset
-    dataset = WikipediaNetwork(root='/tmp/chameleon',name='chameleon')
+    dataset = Amazon(root='/tmp/Photo',name='Photo')
     data = dataset[0]
 
-    # subsample_size = len(data.x)
-    # train_mask = np.random.choice(a=[True, False], size=subsample_size, p=[0.75, 0.25])
-    train_mask = data.train_mask[:, 0]
-    test_mask = [not x for x in train_mask]
+    try:
+        if len(data.train_mask.shape)>1:
+            train_mask = data.train_mask[:,0]
+            test_mask = data.test_mask[:, 0]
+        else:
+            train_mask = data.train_mask
+            test_mask = data.test_mask
+    except AttributeError:
+        bool_list = [True,False]
+        p = [.75,.25]
+        train_mask = np.random.choice(bool_list,len(data.x),p=p)
+        test_mask = [not x for x in train_mask]
 
     # Set device to GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = GCN(dataset=dataset, hidden_channels=64).to(device)
+    model = GAT(dataset=dataset).to(device)
     data = dataset[0].to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
