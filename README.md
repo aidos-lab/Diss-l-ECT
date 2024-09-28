@@ -50,6 +50,7 @@ This function computes the Local Euler Characteristic Transform (l-ECT) for each
 ```python
 dataset = WebKB(root='/tmp/Wisconsin', name='Wisconsin')
 ect_features = compute_local_ect(dataset, radius=1, ECT_TYPE='points', NUM_THETAS=64)
+```
 
 ---
 
