@@ -94,4 +94,7 @@ This function computes the local ECT features for a graph dataset and uses these
 ```python
 dataset = WebKB(root='/tmp/Wisconsin', name='Wisconsin')
 accuracy = xgb_model(dataset, radius1=True, radius2=False, ECT_TYPE='points', metric='accuracy')
+```
+
+## Overview of rotation_invariant_metric.py
 
