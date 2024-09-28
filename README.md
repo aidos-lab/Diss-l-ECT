@@ -100,7 +100,7 @@ accuracy = xgb_model(dataset, radius1=True, radius2=False, ECT_TYPE='points', me
 
 ## Overview of rotation_invariant_metric.py
 
-This module implements an orthogonal neural network model utilizing the ECT (Euclidean Coordinate Transformation) layer for transformations in a high-dimensional space. It includes functionality for computing the ECT layer, defining a neural network model, and performing operations related to rotation invariant distance calculations.
+This module implements a rotation-invariant metric utilizing the ECT (Euler Characteristic Transform). It includes functionality for computing the ECT, defining a neural network model, and performing operations for spatial alignment of two data spaces.
 
 ### Dependencies
 
