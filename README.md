@@ -96,5 +96,71 @@ dataset = WebKB(root='/tmp/Wisconsin', name='Wisconsin')
 accuracy = xgb_model(dataset, radius1=True, radius2=False, ECT_TYPE='points', metric='accuracy')
 ```
 
+---
+
 ## Overview of rotation_invariant_metric.py
 
+This module implements an orthogonal neural network model utilizing the ECT (Euclidean Coordinate Transformation) layer for transformations in a high-dimensional space. It includes functionality for computing the ECT layer, defining a neural network model, and performing operations related to rotation invariant distance calculations.
+
+### Dependencies
+
+This module requires the following libraries:
+
+- `torch`: The core PyTorch library for tensor operations and neural network functionalities.
+- `torch_geometric`: A library for geometric deep learning that extends PyTorch with tools for handling graph-structured data.
+- `geotorch`: A library for geometric deep learning and optimization on manifolds.
+- `sklearn`: For KDTree implementation to facilitate neighbor searches.
+
+### Constants
+
+- `dim`: Dimensionality of the input and output features (default is 768).
+- `in_size`: Input size, equal to `dim`.
+- `out_size`: Output size, equal to `dim`.
+- `DEVICE`: Device to run the computations, defaults to `'cpu'`.
+
+## Functions
+
+### `compute_ect(X, NUM_THETAS=64)`
+
+Computes the ECT transformation of the input tensor `X`.
+
+**Parameters:**
+- `X` (Tensor): The input tensor with features to be transformed.
+- `NUM_THETAS` (int): Number of theta values for the ECT layer (default is 64).
+
+**Returns:**
+- Tensor: The transformed tensor after applying the ECT layer.
+
+### `rotation_inv_distance(X, X_rot)`
+
+Calculates the rotation invariant distance between the input tensor `X` and its rotated version `X_rot` using the orthogonal model.
+
+**Parameters:**
+- `X` (Array-like): The original input data.
+- `X_rot` (Array-like): The rotated version of the input data.
+
+**Returns:**
+- Tuple: A tuple containing:
+  - The loss value as a tensor.
+  - The reconstructed input tensor after transformations.
+  - The weight matrix of the linear transformation.
+
+## Classes
+
+### `OrthogonalModel`
+
+A neural network model that applies an orthogonal transformation to input data.
+
+#### Methods
+
+- **`__init__()`**
+  Initializes the model with a linear layer. The weights of the layer are initialized to an identity matrix, and geometric constraints for orthogonality are applied.
+
+- **`forward(x)`**
+  Performs a forward pass through the model, applying the linear transformation and computing the ECT transformation.
+
+**Parameters:**
+- `x` (Tensor): Input tensor of shape `(batch_size, in_size)`.
+
+**Returns:**
+- Tensor: The output after applying the linear transformation and ECT layer.
