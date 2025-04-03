@@ -183,3 +183,137 @@ def xgb_model(dataset,
         roc = roc_auc_score(test_labels, y_score)
         print(f'ROC AUC: {roc:.4f}')
         return roc
+
+
+def xgb_model_minibatch(
+    dataset,
+    radius1=True,
+    radius2=True,
+    ECT_TYPE='points',
+    NUM_THETAS=64,
+    DEVICE='cpu',
+    metric='accuracy',
+    subsample_size=None,
+    batch_size=64,
+    num_epochs=100,
+):
+    data = dataset[0]
+    all_labels = data.y
+    features = data.x
+
+    try:
+        if (len(data.train_mask.shape) > 1) & (len(data.test_mask.shape) > 1):
+            train_mask = data.train_mask[:, 0]
+            test_mask = data.test_mask[:, 0]
+        elif (len(data.train_mask.shape) > 1) & (not (len(data.test_mask.shape) > 1)):
+            train_mask = data.train_mask[:, 0]
+            test_mask = data.test_mask
+        else:
+            train_mask = data.train_mask
+            test_mask = data.test_mask
+    except AttributeError:
+        bool_list = [True, False]
+        p = [.75, .25]
+        train_mask = np.random.choice(bool_list, len(data.x), p=p)
+        test_mask = [not x for x in train_mask]
+
+    if subsample_size is not None:
+
+        print("Class ratios before subsampling:", get_class_ratios(all_labels))
+
+        # FIXME
+        #np.random.seed(42)
+        idx = np.random.choice(len(data.x), size=subsample_size, replace=False)
+        all_labels = all_labels[idx]
+        features = features[idx]
+        train_mask = train_mask[idx]
+        test_mask = test_mask[idx]
+
+        print("Class ratios after subsampling:", get_class_ratios(all_labels))
+
+    print("Featurizing data...")
+
+    ect_features = []
+    if radius1:
+        ect = compute_local_ect(dataset, radius=1, ECT_TYPE=ECT_TYPE, NUM_THETAS=NUM_THETAS, DEVICE=DEVICE, subsample_size=subsample_size)
+        ect_features.append(ect)
+    if radius2:
+        ect = compute_local_ect(dataset, radius=2, ECT_TYPE=ECT_TYPE, NUM_THETAS=NUM_THETAS, DEVICE=DEVICE, subsample_size=subsample_size)
+        ect_features.append(ect)
+
+    print("...finished.")
+
+    features = torch.cat(ect_features + [features], dim=1) if ect_features else features
+
+    train_features = features[train_mask]
+    test_features = features[test_mask]
+    train_labels = all_labels[train_mask]
+    test_labels = all_labels[test_mask]
+
+    # Encode labels
+    le = LabelEncoder()
+    train_labels = torch.tensor(le.fit_transform(train_labels))
+    test_labels = torch.tensor(le.transform(test_labels))
+
+    train_loader = DataLoader(TensorDataset(train_features, train_labels), batch_size=batch_size, shuffle=True)
+
+    scale_pos_weight = get_class_ratios(all_labels)
+    scale_pos_weight = scale_pos_weight[0] / scale_pos_weight[1]
+
+    print("scale_pos_weight =", scale_pos_weight)
+
+    booster = None
+    for epoch in range(num_epochs):
+        all_train_preds = []
+        all_train_preds_proba = []
+        all_train_labels = []
+
+        for batch_features, batch_labels in train_loader:
+            dtrain = xgb.DMatrix(batch_features.numpy(), label=batch_labels.numpy())
+            if booster is None:
+                booster = xgb.train(
+                    params={'objective': 'binary:logistic',
+                            'eval_metric': 'auc', 'tree_method': 'hist',
+                            'max_depth': 4, 'alpha': 0.5,
+                            'min_child_weight': 3, 'subsample': 0.5,
+                            'scale_pos_weight': scale_pos_weight},
+                    dtrain=dtrain,
+                    num_boost_round=3,
+                )
+            else:
+                booster = xgb.train(
+                    params={ 'objective': 'binary:logistic',
+                            'eval_metric': 'auc', 'tree_method': 'hist',
+                            'max_depth': 4,
+                            'scale_pos_weight': scale_pos_weight},
+                    dtrain=dtrain,
+                    num_boost_round=3,
+                    xgb_model=booster
+                )
+
+            y_pred_batch_proba = booster.predict(dtrain)
+            y_pred_batch = (y_pred_batch_proba >= 0.5).astype(int)
+            all_train_preds.extend(y_pred_batch.tolist())
+            all_train_preds_proba.extend(y_pred_batch_proba.tolist())
+            all_train_labels.extend(batch_labels.numpy())
+
+        if metric == "accuracy":
+            epoch_acc = accuracy_score(all_train_labels, all_train_preds)
+            print(f"Epoch {epoch+1} Train Accuracy: {epoch_acc:.4f}")
+        elif metric == "roc":
+            epoch_acc = roc_auc_score(all_train_labels, all_train_preds_proba, average="weighted")
+            print(f"Epoch {epoch+1} Train ROC: {epoch_acc:.4f}")
+
+    dtest = xgb.DMatrix(test_features.numpy())
+    y_pred_proba = booster.predict(dtest)
+    y_pred = (y_pred_proba >= 0.5).astype(int)
+
+    if metric == 'accuracy':
+        acc = accuracy_score(test_labels.numpy(), y_pred)
+        print(f'Accuracy: {acc:.4f}')
+        return acc
+    elif metric == 'roc':
+        #FIXME: roc = roc_auc_score(test_labels.numpy(), y_pred, multi_class='ovr')
+        roc = roc_auc_score(test_labels, y_pred_proba, average="weighted")
+        print(f'ROC AUC: {roc:.4f}')
+        return roc

@@ -32,15 +32,28 @@ def run_xgb_model_once(dataset_name, dataset_params, radius1, radius2):
         dataset = globals()[dataset_name](**dataset_params)
 
     # Run the model once
-    result = xgb_model(
+    #result = xgb_model(
+    #    dataset,
+    #    radius1=radius1,
+    #    radius2=radius2,
+    #    ECT_TYPE='points',
+    #    NUM_THETAS=32,
+    #    DEVICE='cpu',
+    #    metric=metric,
+    #    subsample_size=512,
+    #)
+
+    result = xgb_model_minibatch(
         dataset,
         radius1=radius1,
         radius2=radius2,
         ECT_TYPE='points',
-        NUM_THETAS=64,
+        NUM_THETAS=32,
         DEVICE='cpu',
         metric=metric,
-        subsample_size=None
+        num_epochs=5,
+        batch_size=64,
+        subsample_size=64,
     )
 
     return result
@@ -57,10 +70,10 @@ def run_xgb_model_n_times(dataset_name, dataset_params, radius1, radius2, num_ru
 
     # Calculate mean and standard deviation of the results
     avg_result = mean(results)
+    max_result = max(results)
     std_result = stdev(results)
 
-    # Return both the average and standard deviation
-    return avg_result, std_result
+    return max_result, avg_result, std_result
 
 
 def main():
@@ -78,13 +91,16 @@ def main():
         # Collect results as they complete
         for future in concurrent.futures.as_completed(future_to_dataset):
             key = future_to_dataset[future]
+            key = "-".join(str(x) for x in key)
             try:
-                avg_result, std_result = future.result()
+                max_result, avg_result, std_result = future.result()
                 # Store results as a dictionary with average and standard deviation
-                results[key] = {'average': avg_result, 'std_dev': std_result}
+                results[key] = {'max': max_result, 'average': avg_result, 'std_dev': std_result}
                 print(f"Completed: {key} -> avg: {avg_result}, std: {std_result}")
             except Exception as e:
                 print(f"Error with {key}: {e}")
+
+    print(json.dumps(results, indent=4))
 
     # Dump results to a JSON file
     with open('results.json', 'w') as f:
