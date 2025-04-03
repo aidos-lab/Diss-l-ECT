@@ -60,7 +60,9 @@ class  EctLayer(nn.Module):
         if torch.is_tensor(v):
             self.v = v
         else:
-            self.v = (torch.rand(size=(config.num_features, config.num_thetas)) - 0.5).T.to(config.device)
+            g = torch.Generator()
+            g.manual_seed(config.seed)
+            self.v = (torch.rand(size=(config.num_features, config.num_thetas), generator=g) - 0.5).T.to(config.device)
             self.v /= self.v.pow(2).sum(axis=1).sqrt().unsqueeze(1)
             self.v = self.v.T 
 
