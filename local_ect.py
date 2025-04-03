@@ -1,19 +1,27 @@
 import torch
 from torch_geometric.data import Batch, Data
 from torch_geometric.datasets import Planetoid, HeterophilousGraphDataset, Amazon, Reddit, WebKB, WikipediaNetwork, Actor, LINKXDataset, WikiCS, Coauthor
+from torch.utils.data import TensorDataset, DataLoader, random_split
+
 import numpy as np
-from torch_geometric.utils.subgraph import k_hop_subgraph
+from torch_geometric.utils import k_hop_subgraph
 from matplotlib import pyplot
 
 from layers.ect import EctLayer
 from layers.config import EctConfig
+
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, roc_auc_score
 import xgboost as xgb
 
 
-dataset = WebKB(root='/tmp/Wisconsin',name='Wisconsin')
+def get_class_ratios(labels):
+    class_counts = np.bincount(labels)
+    class_ratios = class_counts / class_counts.sum()
+
+    return class_ratios
+
 
 def compute_local_ect(dataset,
                       radius=1,
