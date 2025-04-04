@@ -10,7 +10,7 @@ class EctConfig:
     device: str = "cpu"
     num_features: int = 3
     normalized: bool = False
-    seed : int = 42
+    seed : int = None
 
 
 @dataclass(frozen=True)
