@@ -176,7 +176,7 @@ def xgb_model(dataset,
     n_classes = len(le.classes_)
 
     objective = "multi:softprob" if n_classes > 2 else "binary:logistic"
-    eval_metric = "auc" if n_classes > 2 else "error"
+    eval_metric = "auc" if n_classes > 2 or metric == "roc" else "error"
 
     if n_classes == 2:
         scale_pos_weight = get_class_ratios(train_labels)
@@ -189,13 +189,17 @@ def xgb_model(dataset,
 
     model = xgb.XGBClassifier(objective=objective,
                               eval_metric=eval_metric,
-                              scale_pos_weight=scale_pos_weight,
-                              max_depth=5)
+                              scale_pos_weight=scale_pos_weight)
 
 
     model.fit(train, train_labels)
     # Predict probabilities for the test set
-    y_score = model.predict(test)
+    y_score = model.predict_proba(test)
+    y_pred = model.predict(test)
+
+    if n_classes == 2:
+        y_score = y_score[:, 1]
+
     print(f'Feature Importance: {model.feature_importances_}')
     # plot
 
@@ -203,11 +207,11 @@ def xgb_model(dataset,
     # pyplot.title('Feature Importances')
     # pyplot.show()
     if metric=='accuracy':
-        acc = accuracy_score(test_labels, y_score)
+        acc = accuracy_score(test_labels, y_pred)
         print(f'Accuracy: {acc:.4f}')
         return acc
     elif metric=='roc':
-        roc = roc_auc_score(test_labels, y_score)
+        roc = roc_auc_score(test_labels, y_score, average="weighted")
         print(f'ROC AUC: {roc:.4f}')
         return roc
 
