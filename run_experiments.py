@@ -43,30 +43,6 @@ def run_xgb_model_once(dataset_name, dataset_params, radius1, radius2):
         subsample_size=args.subsample_size,
     )
 
-    #result = xgb_model_minibatch(
-    #    dataset,
-    #    radius1=radius1,
-    #    radius2=radius2,
-    #    ECT_TYPE='points',
-    #    NUM_THETAS=32,
-    #    DEVICE='cpu',
-    #    metric=metric,
-    #    subsample_size=512,
-    #)
-
-    result = xgb_model_minibatch(
-        dataset,
-        radius1=radius1,
-        radius2=radius2,
-        ECT_TYPE='points',
-        NUM_THETAS=32,
-        DEVICE='cpu',
-        metric=metric,
-        num_epochs=5,
-        batch_size=64,
-        subsample_size=64,
-    )
-
     return result
 
 
