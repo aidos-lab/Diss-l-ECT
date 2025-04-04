@@ -5,10 +5,6 @@ from local_ect import *
 
 # Define the datasets and their respective parameters
 datasets = [
-    ('WikiCS', {'root': '/tmp/wikics'}),
-    ('Minesweeper', {'root': '/tmp/Minesweeper', 'name': 'Minesweeper'}),
-    ('Tolokers', {'root': '/tmp/Tolokers', 'name': 'Tolokers'}),
-    ('Questions', {'root': '/tmp/Questions', 'name': 'Questions'}),
     ('Actor', {'root': '/tmp/actor'}),
     ('Reddit', {'root': '/tmp/reddit'}),
     ('CS', {'root': '/tmp/CS', 'name': 'CS'}),

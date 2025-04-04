@@ -1,7 +1,7 @@
 from local_ect import *
 
 def main():
-    dataset = Coauthor(root='/tmp/Physics', name='Physics')
+    dataset = Planetoid(root='/tmp/PubMed', name='PubMed')
 
     res = xgb_model(dataset,
               radius1=True,
