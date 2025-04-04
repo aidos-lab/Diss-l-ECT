@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.datasets import Planetoid, Reddit, WebKB, WikipediaNetwork, Amazon
-from baselines.models import GCN, GAT
+from baselines.models import GCN, GAT, H2GCN, GIN
 from torch_geometric.nn.norm import LayerNorm
 import numpy as np
 
