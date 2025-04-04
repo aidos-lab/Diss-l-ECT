@@ -13,6 +13,7 @@ from layers.config import EctConfig
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, roc_auc_score
+
 import xgboost as xgb
 
 
@@ -109,6 +110,8 @@ def xgb_model(dataset,
         if seed is not None:
             np.random.seed(seed)
 
+        print("Class ratios before subsampling:", get_class_ratios(all_labels))
+
         idx = np.random.choice(
             range(len(data.x)),
             replace=False,
@@ -161,8 +164,10 @@ def xgb_model(dataset,
     train_labels = torch.tensor(train_labels)
     test_labels = sub_labels[test_mask]
     test_labels = torch.tensor(test_labels)
-    # Train an XGBoost model
 
+    if subsample_size is not None:
+        print("Class ratios after subsampling (train):", get_class_ratios(train_labels))
+        print("Class ratios after subsampling (test):", get_class_ratios(test_labels))
 
     le = LabelEncoder()
     train_labels = le.fit_transform(train_labels)
@@ -174,8 +179,11 @@ def xgb_model(dataset,
     eval_metric = "auc" if n_classes > 2 else "error"
 
     if n_classes == 2:
-        scale_pos_weight = get_class_ratios(all_labels)
+        scale_pos_weight = get_class_ratios(train_labels)
         scale_pos_weight = scale_pos_weight[0] / scale_pos_weight[1]
+
+        print("scale_pos_weight =", scale_pos_weight)
+
     else:
         scale_pos_weight = None
 
