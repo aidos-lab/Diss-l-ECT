@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torch_geometric.nn import GCNConv, GATConv, MessagePassing, GINConv
+from torch_geometric.nn import GCNConv, GATConv, MessagePassing, GINConv, SAGEConv, LayerNorm
 from torch_geometric.datasets import Planetoid, Reddit, WebKB
 from torch_geometric.nn.norm import LayerNorm
 from torch.nn import Linear, BatchNorm1d, Dropout
@@ -169,4 +169,41 @@ class GIN(torch.nn.Module):
 
         # No global pooling for node-level tasks
         x = self.lin(x)
+        return F.log_softmax(x, dim=1)
+
+
+class GraphSAGE(torch.nn.Module):
+    def __init__(self, dataset, hidden_channels=64, dropout=0.5):
+        super(GraphSAGE, self).__init__()
+        self.conv1 = SAGEConv(dataset.num_features, hidden_channels)
+        self.norm1 = LayerNorm(hidden_channels)
+        self.fc1 = nn.Linear(hidden_channels, hidden_channels)
+        self.fc2 = nn.Linear(hidden_channels, hidden_channels)
+
+        self.conv2 = SAGEConv(hidden_channels, hidden_channels)
+        self.norm2 = LayerNorm(hidden_channels)
+        self.fc3 = nn.Linear(hidden_channels, hidden_channels)
+        self.fc4 = nn.Linear(hidden_channels, hidden_channels)
+        self.fc_final = nn.Linear(hidden_channels, dataset.num_classes)
+
+        self.dropout = dropout
+
+    def forward(self, x, edge_index):
+        # First GraphSAGE layer
+        x = F.relu(self.conv1(x, edge_index))
+        x_clone = x  # Save for skip connection
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x) + x_clone)  # Skip connection
+        x = self.norm1(x)
+
+        # Second GraphSAGE layer
+        x_clone = x  # Save for skip connection
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.conv2(x, edge_index)
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x) + x_clone  # Skip connection
+        x = self.norm2(x)
+
+        # Final classification layer
+        x = self.fc_final(x)
         return F.log_softmax(x, dim=1)
