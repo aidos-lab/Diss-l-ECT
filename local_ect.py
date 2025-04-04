@@ -2,7 +2,7 @@ import torch
 from torch_geometric.data import Batch, Data
 from torch_geometric.datasets import Planetoid, HeterophilousGraphDataset, Amazon, Reddit, WebKB, WikipediaNetwork, Actor, LINKXDataset, WikiCS, Coauthor
 from torch.utils.data import TensorDataset, DataLoader, random_split
-
+import torch.nn.functional as F
 import numpy as np
 from torch_geometric.utils import k_hop_subgraph
 from matplotlib import pyplot
@@ -40,6 +40,7 @@ def compute_local_ect(dataset,
     '''
 
     data = dataset[0]
+    data.x = F.normalize(data.x, p=2, dim=1)
     features = data.x
     if subsample_idx is not None:
         sub_nodes = np.array(range(len(data.x)))[subsample_idx]

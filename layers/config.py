@@ -9,7 +9,7 @@ class EctConfig:
     ect_type: str = "points"
     device: str = "cpu"
     num_features: int = 3
-    normalized: bool = False
+    normalized: bool = True
     seed : int = None
 
 

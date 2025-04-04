@@ -2,17 +2,15 @@ import concurrent.futures
 import json
 from statistics import mean, stdev
 from local_ect import *
+import argparse
 
 # Define the datasets and their respective parameters
 datasets = [
-    ('Actor', {'root': '/tmp/actor'}),
-    ('Reddit', {'root': '/tmp/reddit'}),
-    ('CS', {'root': '/tmp/CS', 'name': 'CS'}),
-    ('Physics', {'root': '/tmp/Physics', 'name': 'Physics'}),
+    ('Tolokers', {'root': '/tmp/Tolokers'}),
 ]
 
 # All combinations of radius1 and radius2 except (False, False)
-radius_combinations = [(True, True), (True, False), (False, True)]
+radius_combinations = [(True, False)]
 
 # Number of times each configuration should be executed
 num_runs = 5
@@ -22,7 +20,7 @@ def run_xgb_model_once(dataset_name, dataset_params, radius1, radius2):
     # Determine the metric based on dataset type
     if dataset_name in ['Minesweeper', 'Tolokers', 'Questions']:  # Heterophilous datasets
         metric = 'roc'
-        dataset = HeterophilousGraphDataset(**dataset_params)
+        dataset = HeterophilousGraphDataset(name=dataset_name, **dataset_params)
     else:
         metric = 'accuracy'
         dataset = globals()[dataset_name](**dataset_params)
