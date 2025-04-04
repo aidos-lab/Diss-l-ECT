@@ -28,7 +28,7 @@ def compute_local_ect(dataset,
                       ECT_TYPE='points',
                       NUM_THETAS = 64,
                       DEVICE = 'cpu',
-                      subsample_size=None
+                      subsample_idx=None
 ):
     '''
     dataset: pytorch geometric graph dataset
@@ -36,20 +36,13 @@ def compute_local_ect(dataset,
     ECT_TYPE: type of structural information used for the ECT calculation; can be 'points', 'edges' or 'faces'
     NUM_THETAS: the approximation parameter for the resulting ECT; the computation outputs a NUM_THETAS*NUM_THETAS dimensional vector.
     DEVICE: device to be used for the computation
-    subsample_size: number of randomly sampled nodes in `dataset` to compute the local ECT for; default is None which means that local ECT is determined for all nodes in the input graph.
+    subsample_idx: indices of randomly sampled nodes in `dataset` to compute the local ECT for; default is None which means that local ECT is determined for all nodes in the input graph.
     '''
 
     data = dataset[0]
     features = data.x
-    if subsample_size != None:
-        np.random.seed(42)
-        idx = np.random.choice(
-                     range(len(data.x)),
-                     replace=False,
-                     size=subsample_size,
-                 )
-
-        sub_nodes = np.array(range(len(data.x)))[idx]
+    if subsample_idx is not None:
+        sub_nodes = np.array(range(len(data.x)))[subsample_idx]
     else:
         sub_nodes = np.array(range(len(data.x)))
 
@@ -68,6 +61,7 @@ def compute_local_ect(dataset,
 
     ect = ectlayer(batch)
     ect = ect.reshape(ect.shape[0], ect.shape[1] * ect.shape[2])
+
     return ect
 
 
@@ -78,7 +72,8 @@ def xgb_model(dataset,
               NUM_THETAS = 64,
               DEVICE = 'cpu',
               metric='accuracy',
-              subsample_size=None
+              subsample_size=None,
+              seed=None
 ):
     '''
     dataset: pytorch geometric graph dataset
@@ -108,8 +103,12 @@ def xgb_model(dataset,
         train_mask = np.random.choice(bool_list,len(data.x),p=p)
         test_mask = [not x for x in train_mask]
 
-    if subsample_size!=None:
-        np.random.seed(42)
+    idx = None
+
+    if subsample_size is not None:
+        if seed is not None:
+            np.random.seed(seed)
+
         idx = np.random.choice(
             range(len(data.x)),
             replace=False,
@@ -127,7 +126,8 @@ def xgb_model(dataset,
                                  ECT_TYPE=ECT_TYPE,
                                  NUM_THETAS=NUM_THETAS,
                                  DEVICE=DEVICE,
-                                 subsample_size = subsample_size)
+                                 subsample_idx=idx)
+
         ect_train = ect[train_mask]
         ect_test = ect[test_mask]
 
@@ -137,7 +137,7 @@ def xgb_model(dataset,
                               ECT_TYPE=ECT_TYPE,
                               NUM_THETAS=NUM_THETAS,
                               DEVICE=DEVICE,
-                              subsample_size=subsample_size)
+                              subsample_idx=idx)
         ect_train_2 = ect[train_mask]
         ect_test_2 = ect[test_mask]
 
@@ -162,10 +162,29 @@ def xgb_model(dataset,
     test_labels = sub_labels[test_mask]
     test_labels = torch.tensor(test_labels)
     # Train an XGBoost model
-    model = xgb.XGBClassifier()
+
+
     le = LabelEncoder()
     train_labels = le.fit_transform(train_labels)
     test_labels = le.fit_transform(test_labels)
+
+    n_classes = len(le.classes_)
+
+    objective = "multi:softprob" if n_classes > 2 else "binary:logistic"
+    eval_metric = "auc" if n_classes > 2 else "error"
+
+    if n_classes == 2:
+        scale_pos_weight = get_class_ratios(all_labels)
+        scale_pos_weight = scale_pos_weight[0] / scale_pos_weight[1]
+    else:
+        scale_pos_weight = None
+
+    model = xgb.XGBClassifier(objective=objective,
+                              eval_metric=eval_metric,
+                              scale_pos_weight=scale_pos_weight,
+                              max_depth=5)
+
+
     model.fit(train, train_labels)
     # Predict probabilities for the test set
     y_score = model.predict(test)
