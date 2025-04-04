@@ -162,10 +162,29 @@ def xgb_model(dataset,
     test_labels = sub_labels[test_mask]
     test_labels = torch.tensor(test_labels)
     # Train an XGBoost model
-    model = xgb.XGBClassifier()
+
+
     le = LabelEncoder()
     train_labels = le.fit_transform(train_labels)
     test_labels = le.fit_transform(test_labels)
+
+    n_classes = len(le.classes_)
+
+    objective = "multi:softprob" if n_classes > 2 else "binary:logistic"
+    eval_metric = "auc" if n_classes > 2 else "error"
+
+    if n_classes == 2:
+        scale_pos_weight = get_class_ratios(all_labels)
+        scale_pos_weight = scale_pos_weight[0] / scale_pos_weight[1]
+    else:
+        scale_pos_weight = None
+
+    model = xgb.XGBClassifier(objective=objective,
+                              eval_metric=eval_metric,
+                              scale_pos_weight=scale_pos_weight,
+                              max_depth=5)
+
+
     model.fit(train, train_labels)
     # Predict probabilities for the test set
     y_score = model.predict(test)

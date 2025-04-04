@@ -32,7 +32,18 @@ def run_xgb_model_once(dataset_name, dataset_params, radius1, radius2):
         dataset = globals()[dataset_name](**dataset_params)
 
     # Run the model once
-    #result = xgb_model(
+    result = xgb_model(
+        dataset,
+        radius1=radius1,
+        radius2=radius2,
+        ECT_TYPE='points',
+        NUM_THETAS=args.num_directions,
+        DEVICE='cpu',
+        metric=metric,
+        subsample_size=args.subsample_size,
+    )
+
+    #result = xgb_model_minibatch(
     #    dataset,
     #    radius1=radius1,
     #    radius2=radius2,
@@ -110,4 +121,10 @@ def main():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--subsample-size", type=int, default=None)
+    parser.add_argument("--num-directions", type=int, default=32)
+
+    args = parser.parse_args()
+
     main()
