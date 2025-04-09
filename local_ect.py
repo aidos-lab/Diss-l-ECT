@@ -189,7 +189,15 @@ def xgb_model(dataset,
 
     model = xgb.XGBClassifier(objective=objective,
                               eval_metric=eval_metric,
-                              scale_pos_weight=scale_pos_weight)
+                              scale_pos_weight=scale_pos_weight,
+                              max_depth=4,
+                              min_child_weight=5,
+                              gamma=1.0,
+                              reg_lambda=10.0,
+                              colsample_bytree=0.8,
+                              subsample=0.8,
+                              alpha=0.5,
+            )
 
     model.fit(train, train_labels)
 
