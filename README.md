@@ -1,6 +1,8 @@
 # Diss-l-ECT: Dissecting Graph Data with local Euler Characteristic Transforms
 
-[![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/Diss-l-ECT)](https://github.com/aidos-lab/Diss-l-ECT/graphs/contributors) [![License](https://img.shields.io/github/license/aidos-lab/Diss-l-ECT)](/LICENSE.md)
+[![arXiv](https://img.shields.io/badge/arXiv-2410.02622-b31b1b.svg)](https://arxiv.org/abs/2410.02622)
+[![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/Diss-l-ECT)](https://github.com/aidos-lab/Diss-l-ECT/graphs/contributors)
+[![License](https://img.shields.io/github/license/aidos-lab/Diss-l-ECT)](/LICENSE.md)
 
 ## Overview of local_ect.py
 This module provides two primary functions for working with graph datasets, specifically leveraging **Local Euler Characteristic Transform (l-ECT)** and **XGBoost** for node classification tasks for featured graphs. The `compute_local_ect` function computes the ECT for local graph neighborhoods, and `xgb_model` uses the (l-ECT) information to train a machine learning model using **XGBoost**.
